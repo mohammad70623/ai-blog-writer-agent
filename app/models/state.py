@@ -73,3 +73,31 @@ class GlobalImagePlan(BaseModel):
     md_with_placeholders: str
     images: List[ImageSpec] = Field(default_factory=list)
 
+
+# ──────────────────────────────────────────────
+# LangGraph state
+# ──────────────────────────────────────────────
+
+class State(TypedDict):
+    topic: str
+
+    # routing / research
+    mode: str
+    needs_research: bool
+    queries: List[str]
+    evidence: List[EvidenceItem]
+    plan: Optional[Plan]
+
+    # recency
+    as_of: str
+    recency_days: int
+
+    # parallel worker outputs
+    sections: Annotated[List[tuple[int, str]], operator.add]
+
+    # reducer / image
+    merged_md: str
+    md_with_placeholders: str
+    image_specs: List[dict]
+
+    final: str
