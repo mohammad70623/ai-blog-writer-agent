@@ -72,3 +72,43 @@ def decide_images(state: State) -> dict:
     }
 
 
+# ──────────────────────────────────────────────
+# Step 3: generate images and insert into markdown
+# ──────────────────────────────────────────────
+
+def _safe_slug(title: str) -> str:
+    s = title.strip().lower()
+    s = re.sub(r"[^a-z0-9 _-]+", "", s)
+    s = re.sub(r"\s+", "_", s).strip("_")
+    return s or "blog"
+
+
+def generate_and_place_images(state: State) -> dict:
+    plan = state["plan"]
+    assert plan is not None
+
+    md = state.get("md_with_placeholders") or state["merged_md"]
+    image_specs = state.get("image_specs") or []
+
+    for spec in image_specs:
+        placeholder = spec["placeholder"]
+        filename = spec["filename"]
+
+        try:
+            img_path = generate_image(prompt=spec["prompt"], filename=filename)
+            img_md = f"![{spec['alt']}]({img_path})\n*{spec['caption']}*"
+        except Exception as e:
+            # Graceful fallback: leave a descriptive block so the doc is still usable
+            img_md = (
+                f"> **[Image could not be generated]** {spec.get('caption', '')}\n"
+                f">\n> **Alt:** {spec.get('alt', '')}\n"
+                f">\n> **Prompt:** {spec.get('prompt', '')}\n"
+                f">\n> **Error:** {e}\n"
+            )
+
+        md = md.replace(placeholder, img_md)
+
+    filename = f"{_safe_slug(plan.blog_title)}.md"
+    Path(filename).write_text(md, encoding="utf-8")
+
+    return {"final": md}
