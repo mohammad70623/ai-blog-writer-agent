@@ -23,3 +23,52 @@ def merge_content(state: State) -> dict:
     merged_md = f"# {plan.blog_title}\n\n{body}\n"
     return {"merged_md": merged_md}
 
+
+# ──────────────────────────────────────────────
+# Step 2: decide where images should go
+# ──────────────────────────────────────────────
+
+DECIDE_IMAGES_SYSTEM = """You are an expert technical editor.
+Decide if images or diagrams would genuinely improve this blog post.
+
+Rules:
+- Maximum 3 images total.
+- Only include an image if it materially aids understanding
+  (e.g. architecture diagram, data flow, comparison table visual).
+- Insert placeholders exactly as: [[IMAGE_1]], [[IMAGE_2]], [[IMAGE_3]].
+- If no images are needed, return the markdown unchanged and images=[].
+- Avoid purely decorative images.
+- Write clear, descriptive image prompts (what to draw, style, labels).
+
+Return strictly as GlobalImagePlan schema.
+"""
+
+
+def decide_images(state: State) -> dict:
+    llm = get_llm()
+    planner = llm.with_structured_output(GlobalImagePlan)
+
+    merged_md = state["merged_md"]
+    plan = state["plan"]
+    assert plan is not None
+
+    image_plan: GlobalImagePlan = planner.invoke(
+        [
+            SystemMessage(content=DECIDE_IMAGES_SYSTEM),
+            HumanMessage(
+                content=(
+                    f"Blog kind: {plan.blog_kind}\n"
+                    f"Topic: {state['topic']}\n\n"
+                    "Insert placeholders where images would help, then propose prompts.\n\n"
+                    f"{merged_md}"
+                )
+            ),
+        ]
+    )
+
+    return {
+        "md_with_placeholders": image_plan.md_with_placeholders,
+        "image_specs": [img.model_dump() for img in image_plan.images],
+    }
+
+
