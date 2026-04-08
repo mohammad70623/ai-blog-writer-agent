@@ -56,3 +56,20 @@ class RouterDecision(BaseModel):
     queries: List[str] = Field(default_factory=list)
     max_results_per_query: int = Field(5)
 
+
+# ──────────────────────────────────────────────
+# Image schemas
+# ──────────────────────────────────────────────
+
+class ImageSpec(BaseModel):
+    placeholder: str = Field(..., description="e.g. [[IMAGE_1]]")
+    filename: str = Field(..., description="Save under data/images/, e.g. qkv_flow.png")
+    alt: str
+    caption: str
+    prompt: str = Field(..., description="Prompt to send to the image model.")
+
+
+class GlobalImagePlan(BaseModel):
+    md_with_placeholders: str
+    images: List[ImageSpec] = Field(default_factory=list)
+
